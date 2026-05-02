@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard | Lost & Found System</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  
+
+  <style>
+    .option-card {
+      padding: 25px;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .option-card:hover {
+      transform: scale(1.03);
+      box-shadow: 0px 4px 15px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+
+<body class="bg-light">
+
+<!-- ✅ NAVBAR -->
+<nav class="navbar navbar-dark bg-primary p-3 d-flex justify-content-between align-items-center shadow">
+  <h4 class="text-white m-0"><i class="fa-solid fa-house"></i> Lost & Found Portal</h4>
+
+  <div class="d-flex align-items-center">
+    <div id="profileCircle" class="rounded-circle bg-white text-primary fw-bold me-2 profile-badge"></div>
+    <span id="profileName" class="text-white me-3"></span>
+
+    <button class="btn btn-light btn-sm" onclick="logout()">
+      <i class="fa-solid fa-right-from-bracket"></i> Logout
+    </button>
+  </div>
+</nav>
+
+<!-- ✅ MAIN CARD -->
+<div class="container d-flex justify-content-center align-items-center" style="height: 80vh;">
+  <div class="card shadow p-4" style="max-width: 550px; width:100%; border-radius: 15px;">
+
+    <h3 class="text-center fw-bold mb-2">
+      <i class="fa-solid fa-clipboard-check text-primary"></i> Welcome to Lost & Found Portal
+    </h3>
+    <p class="text-center text-muted">Choose an action below</p>
+
+    <div class="mt-4">
+
+      <!-- ✅ LOST -->
+      <div class="option-card bg-primary text-white text-center mb-3" onclick="window.location.href='lost.html'">
+        <i class="fa-solid fa-magnifying-glass-location fa-2x mb-2"></i>
+        <h5 class="fw-bold">Report Lost Item</h5>
+      </div>
+
+      <!-- ✅ FOUND -->
+      <div class="option-card bg-success text-white text-center mb-3" onclick="window.location.href='found.html'">
+        <i class="fa-solid fa-hand-holding fa-2x mb-2"></i>
+        <h5 class="fw-bold">Report Found Item</h5>
+      </div>
+
+      <!-- ✅ HISTORY -->
+      <div class="option-card bg-white text-primary border text-center" onclick="window.location.href='history.html'">
+        <i class="fa-solid fa-file-lines fa-2x mb-2"></i>
+        <h5 class="fw-bold">View My Reports</h5>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+
+<script>
+
+// Get user from localStorage
+const user = JSON.parse(localStorage.getItem("user"));
+
+// If not logged in → redirect
+if (!user || !user.id) {
+  window.location.href = "login.html";
+}
+
+// Show correct name
+const firstName = user.name.split(" ")[0];
+const initial = firstName.charAt(0).toUpperCase();
+
+document.getElementById("profileCircle").innerHTML = initial;
+document.getElementById("profileName").innerHTML = firstName;
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,101 @@
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+nav h4 {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.container img {
+  filter: drop-shadow(0 0 5px rgba(0,0,0,0.2));
+}
+
+.btn-lg {
+  width: 180px;
+}
+
+.container h2 {
+  font-weight: 600;
+}
+.card {
+  border: none;
+  border-radius: 12px;
+}
+
+input {
+  border-radius: 8px !important;
+}
+
+.btn {
+  border-radius: 8px;
+}
+
+.card {
+  border: none;
+  border-radius: 12px;
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+input, select {
+  border-radius: 8px !important;
+}
+
+.option-card {
+  border-radius: 12px;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+.option-card:hover {
+  transform: scale(1.05);
+  background: #f8f9fa;
+}
+textarea {
+  height: 100px;
+  border-radius: 8px !important;
+}
+
+.admin-img {
+  height: 130px;
+  width: 130px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.card:hover {
+  transform: scale(1.01);
+  transition: 0.2s ease;
+}
+
+h3 {
+  font-weight: 600;
+  color: #444;
+}
+table th, table td {
+  vertical-align: middle;
+}
+
+.badge {
+  font-size: 14px;
+  padding: 6px 10px;
+}
+
+.modal-content {
+  border-radius: 10px;
+}
+.profile-badge {
+  width: 35px;
+  height: 35px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  font-size: 18px;
+  border: 2px solid #fff;
+}

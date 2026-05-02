@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel | Lost &amp; Found System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .img-thumb {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 2px solid #dee2e6;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .img-thumb:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+    .btn-view-img {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+    }
+  </style>
+</head>
+
+<body class="bg-light">
+
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-dark bg-danger p-3 d-flex justify-content-between">
+    <h4 class="text-white m-0">
+      <i class="fa-solid fa-user-shield"></i> Admin Panel
+    </h4>
+    <button class="btn btn-light btn-sm" onclick="logout()">Logout</button>
+  </nav>
+
+  <div class="container mt-4">
+
+    <!-- ================= MATCHED ITEMS ================= -->
+    <h3 class="text-center mb-4 fw-bold">Matched Items Awaiting Approval</h3>
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover shadow align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Lost Image</th>
+            <th>Found Image</th>
+            <th>Category</th>
+            <th>Location</th>
+            <th>Match Score</th>
+            <th>Student Info</th>
+            <th>Emails</th>
+            <th>Date Found</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="matchBody">
+          <tr><td colspan="9" class="text-center">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ================= UNMATCHED ITEMS ================= -->
+    <h3 class="text-center mt-5 mb-3 fw-bold text-secondary">Unmatched Items (Needs Review)</h3>
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover shadow align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Type</th>
+            <th>Image</th>
+            <th>View</th>
+            <th>Title</th>
+            <th>Location</th>
+            <th>Date</th>
+            <th>Reported By</th>
+          </tr>
+        </thead>
+        <tbody id="unmatchedBody">
+          <tr><td colspan="7" class="text-center">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ================= ALL LOST ITEMS ================= -->
+    <h3 class="text-center mt-5 mb-3 fw-bold text-primary">All Lost Items</h3>
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover shadow align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Image</th>
+            <th>View</th>
+            <th>Reported By</th>
+            <th>Title</th>
+            <th>Location</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody id="adminLostBody">
+          <tr><td colspan="6" class="text-center">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ================= ALL FOUND ITEMS ================= -->
+    <h3 class="text-center mt-5 mb-3 fw-bold text-success">All Found Items</h3>
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover shadow align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Image</th>
+            <th>View</th>
+            <th>Reported By</th>
+            <th>Title</th>
+            <th>Location</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody id="adminFoundBody">
+          <tr><td colspan="6" class="text-center">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- ===== IMAGE PREVIEW MODAL ===== -->
+  <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content bg-dark">
+        <div class="modal-header border-0">
+          <h5 class="modal-title text-white" id="imageModalTitle">Item Image</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center p-3">
+          <img id="modalImage" src="" alt="Item Image"
+               style="max-width:100%; max-height:75vh; border-radius:10px; box-shadow:0 0 20px rgba(255,255,255,0.1);">
+        </div>
+        <div class="modal-footer border-0 justify-content-center">
+          <a id="modalDownload" href="" target="_blank" class="btn btn-outline-light btn-sm">
+            <i class="fa-solid fa-up-right-from-square"></i> Open Full Size
+          </a>
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap + Scripts (at bottom so DOM is ready) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/common.js"></script>
+
+  <script>
+    const BASE_URL = "http://localhost:5000";
+
+    // Admin auth check
+    const adminUser = JSON.parse(localStorage.getItem("user"));
+    if (!adminUser || adminUser.role !== "admin") {
+      alert("Access denied! Only admin allowed.");
+      window.location.href = "login.html";
+    }
+
+    // ─── IMAGE HELPERS ───────────────────────────────────────
+    // Returns thumbnail <img> or "No Image" badge
+    function imgThumb(imageName, label) {
+      if (imageName) {
+        const url = `${BASE_URL}/uploads/${imageName}`;
+        return `<img src="${url}" class="img-thumb" alt="Item"
+                     onclick="showImgModal('${url}', '${(label || 'Item').replace(/'/g, "\\'")}')">`;
+      }
+      return `<span class="badge bg-secondary"><i class="fa-solid fa-image-slash"></i> No Image</span>`;
+    }
+
+    // Returns "View Image" button or disabled button
+    function viewBtn(imageName, label) {
+      if (imageName) {
+        const url = `${BASE_URL}/uploads/${imageName}`;
+        return `<button class="btn btn-sm btn-outline-primary btn-view-img"
+                        onclick="showImgModal('${url}', '${(label || 'Item').replace(/'/g, "\\'")}')">
+                  <i class="fa-solid fa-eye"></i> View
+                </button>`;
+      }
+      return `<button class="btn btn-sm btn-outline-secondary btn-view-img" disabled>
+                <i class="fa-solid fa-eye-slash"></i> No Image
+              </button>`;
+    }
+
+    // Open image in Bootstrap modal
+    function showImgModal(src, title) {
+      document.getElementById("modalImage").src = src;
+      document.getElementById("modalDownload").href = src;
+      document.getElementById("imageModalTitle").innerText = title;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById("imageModal")).show();
+    }
+
+    // ─── LOAD ALL LOST ITEMS ──────────────────────────────────
+    async function loadAdminLost() {
+      const body = document.getElementById("adminLostBody");
+      try {
+        const data = await fetch(`${BASE_URL}/api/admin/lost`).then(r => r.json());
+        body.innerHTML = "";
+        if (!data.length) {
+          body.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No lost items found</td></tr>`;
+          return;
+        }
+        data.forEach(item => {
+          body.innerHTML += `
+            <tr>
+              <td class="text-center">${imgThumb(item.image, item.title)}</td>
+              <td class="text-center">${viewBtn(item.image, item.title)}</td>
+              <td>${item.name || "Unknown"}</td>
+              <td>${item.title || "N/A"}</td>
+              <td>${item.location || "N/A"}</td>
+              <td>${item.description || "N/A"}</td>
+            </tr>`;
+        });
+      } catch (e) {
+        body.innerHTML = `<tr><td colspan="6" class="text-danger text-center">Error loading data</td></tr>`;
+        console.error(e);
+      }
+    }
+
+    // ─── LOAD ALL FOUND ITEMS ─────────────────────────────────
+    async function loadAdminFound() {
+      const body = document.getElementById("adminFoundBody");
+      try {
+        const data = await fetch(`${BASE_URL}/api/admin/found`).then(r => r.json());
+        body.innerHTML = "";
+        if (!data.length) {
+          body.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No found items found</td></tr>`;
+          return;
+        }
+        data.forEach(item => {
+          body.innerHTML += `
+            <tr>
+              <td class="text-center">${imgThumb(item.image, item.title)}</td>
+              <td class="text-center">${viewBtn(item.image, item.title)}</td>
+              <td>${item.name || "Unknown"}</td>
+              <td>${item.title || "N/A"}</td>
+              <td>${item.location || "N/A"}</td>
+              <td>${item.description || "N/A"}</td>
+            </tr>`;
+        });
+      } catch (e) {
+        body.innerHTML = `<tr><td colspan="6" class="text-danger text-center">Error loading data</td></tr>`;
+        console.error(e);
+      }
+    }
+
+    // ─── LOAD MATCHES ─────────────────────────────────────────
+    async function loadMatches() {
+      const body = document.getElementById("matchBody");
+      try {
+        const data = await fetch(`${BASE_URL}/api/admin/matches`).then(r => r.json());
+        body.innerHTML = "";
+        if (!data || data.length === 0) {
+          body.innerHTML = `<tr><td colspan="9" class="text-center text-muted">No matches found</td></tr>`;
+          return;
+        }
+        data.forEach(item => {
+          body.innerHTML += `
+            <tr>
+              <td class="text-center">
+                ${imgThumb(item.lost_image, 'Lost: ' + item.lost_title)}
+                <div class="mt-1">${viewBtn(item.lost_image, 'Lost: ' + item.lost_title)}</div>
+              </td>
+              <td class="text-center">
+                ${imgThumb(item.found_image, 'Found: ' + item.found_title)}
+                <div class="mt-1">${viewBtn(item.found_image, 'Found: ' + item.found_title)}</div>
+              </td>
+              <td><strong>Lost:</strong> ${item.lost_title}<br><strong>Found:</strong> ${item.found_title}</td>
+              <td>${item.lost_location}<br>${item.found_location}</td>
+              <td><span class="badge bg-success fs-6">${item.match_score}</span></td>
+              <td>${item.lost_student}<br>${item.found_student}</td>
+              <td>${item.lost_email}<br>${item.found_email}</td>
+              <td>${item.date_found ? new Date(item.date_found).toLocaleDateString() : "N/A"}</td>
+              <td>
+                <button class="btn btn-sm btn-success mb-1 w-100"
+                        onclick="approveMatch('${item.lost_id}','${item.found_id}')">
+                  <i class="fa-solid fa-check"></i> Approve
+                </button>
+                <button class="btn btn-sm btn-danger w-100" onclick="rejectMatch(this)">
+                  <i class="fa-solid fa-xmark"></i> Reject
+                </button>
+              </td>
+            </tr>`;
+        });
+      } catch (e) {
+        body.innerHTML = `<tr><td colspan="9" class="text-danger text-center">Error loading data</td></tr>`;
+        console.error(e);
+      }
+    }
+
+    // ─── LOAD UNMATCHED ───────────────────────────────────────
+    async function loadUnmatched() {
+      const body = document.getElementById("unmatchedBody");
+      try {
+        const data = await fetch(`${BASE_URL}/api/admin/unmatched`).then(r => r.json());
+        body.innerHTML = "";
+        if (!data || data.length === 0) {
+          body.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No unmatched items</td></tr>`;
+          return;
+        }
+        data.forEach(item => {
+          body.innerHTML += `
+            <tr>
+              <td><span class="badge ${item.type === 'Lost' ? 'bg-danger' : 'bg-primary'}">${item.type}</span></td>
+              <td class="text-center">${imgThumb(item.image, item.title)}</td>
+              <td class="text-center">${viewBtn(item.image, item.title)}</td>
+              <td>${item.title || "N/A"}</td>
+              <td>${item.location || "N/A"}</td>
+              <td>${item.date ? new Date(item.date).toLocaleDateString() : "N/A"}</td>
+              <td>${item.reported_by || "Unknown"}</td>
+            </tr>`;
+        });
+      } catch (e) {
+        body.innerHTML = `<tr><td colspan="7" class="text-danger text-center">Error loading data</td></tr>`;
+        console.error(e);
+      }
+    }
+
+    // ─── APPROVE MATCH ────────────────────────────────────────
+    async function approveMatch(lost_id, found_id) {
+      if (!confirm("Approve this match? Both items will be marked as resolved and users will be notified.")) return;
+      try {
+        const res = await fetch(`${BASE_URL}/api/admin/match/approve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lost_id, found_id })
+        });
+        const data = await res.json();
+        alert(data.message || (res.ok ? "Match approved!" : "Error approving match"));
+        if (res.ok) { loadMatches(); loadUnmatched(); loadAdminLost(); loadAdminFound(); }
+      } catch (e) { console.error(e); }
+    }
+
+    // ─── REJECT MATCH ─────────────────────────────────────────
+    function rejectMatch(btn) {
+      if (!confirm("Reject this match?")) return;
+      btn.closest('tr').remove();
+    }
+
+    // ─── INIT ─────────────────────────────────────────────────
+    loadAdminLost();
+    loadAdminFound();
+    loadMatches();
+    loadUnmatched();
+  </script>
+
+</body>
+</html>

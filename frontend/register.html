@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Register | Lost & Found System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #198754, #6fdd9c);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .register-card {
+      width: 420px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      padding: 35px;
+      background: #ffffff;
+    }
+
+    .form-control, .form-select {
+      border-radius: 8px;
+    }
+
+    .btn-success {
+      border-radius: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="register-card">
+
+  <div class="text-center mb-4">
+    <i class="fa-solid fa-user-plus fa-3x text-success mb-3"></i>
+    <h4 class="fw-bold">Create Account</h4>
+    <p class="text-muted small">Register to report lost & found items</p>
+  </div>
+
+  <form id="registerForm">
+
+    <input type="text" id="name" class="form-control mb-3" placeholder="Full Name" required>
+
+    <input type="email" id="email" class="form-control mb-3" placeholder="Email" required>
+
+    <input type="text" id="prn" class="form-control mb-3" placeholder="PRN Number" required>
+
+    <!-- ROLE SELECT (ONLY ONE) -->
+    <select id="role" class="form-select mb-3">
+      <option value="user">User</option>
+      <option value="admin">Admin</option>
+    </select>
+
+    <div class="input-group mb-3">
+      <input type="password" id="password" class="form-control" placeholder="Password" required>
+      <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+        <i class="fa fa-eye"></i>
+      </button>
+    </div>
+
+    <button id="registerBtn" type="submit" class="btn btn-success w-100 mb-3">
+      Register
+    </button>
+
+  </form>
+
+  <p class="text-center small">
+    Already have an account? 
+    <a href="login.html">Login</a>
+  </p>
+
+  <p id="reg_msg" class="text-danger text-center small mt-2"></p>
+
+</div>
+
+<script>
+
+const BASE_URL = "http://localhost:5000";
+
+// ================= REGISTER FUNCTION =================
+document.getElementById("registerForm").addEventListener("submit", async function(e) {
+
+  e.preventDefault();
+
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const prn = document.getElementById("prn").value.trim();
+  const password = document.getElementById("password").value.trim();
+  const role = document.getElementById("role").value;
+
+  const msg = document.getElementById("reg_msg");
+  const btn = document.getElementById("registerBtn");
+
+  msg.innerText = "";
+
+  if (!name || !email || !prn || !password) {
+    msg.innerText = "All fields are required";
+    return;
+  }
+
+  btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Registering...`;
+  btn.disabled = true;
+
+  try {
+
+    const res = await fetch(`${BASE_URL}/api/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password, role })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      alert("Registration Successful ✅");
+      window.location.href = "login.html";
+    } else {
+      msg.innerText = data.message || "Registration failed";
+    }
+
+  } catch (err) {
+    msg.innerText = "Server error. Please try again.";
+  }
+
+  btn.innerHTML = "Register";
+  btn.disabled = false;
+
+});
+
+// Toggle password
+function togglePassword() {
+  const pass = document.getElementById("password");
+  pass.type = pass.type === "password" ? "text" : "password";
+}
+
+</script>
+
+</body>
+</html>
