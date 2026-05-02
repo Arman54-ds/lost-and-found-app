@@ -1,4 +1,5 @@
 // ================= IMPORTS =================
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -10,8 +11,8 @@ const app = express();
 
 // ================= EMAIL TRANSPORTER =================
 // ================= EMAIL CONFIGURATION =================
-const ADMIN_EMAIL = 'admin_email@gmail.com'; // 👈 Replace with your actual Gmail
-const ADMIN_PASS = 'admin_app_password';    // 👈 Replace with your Gmail App Password
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin_email@gmail.com'; 
+const ADMIN_PASS = process.env.ADMIN_PASS || 'admin_app_password';    
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -26,13 +27,18 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Serve Frontend Static Files
+app.use(express.static(path.join(__dirname, '../frontend')));
+
 // ================= MYSQL CONNECTION =================
-const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'Arman@5403',
-  database: 'lostfound_db'
-});
+const dbConfig = process.env.DATABASE_URL || {
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || 'Arman@5403',
+  database: process.env.DB_NAME || 'lostfound_db'
+};
+
+const db = mysql.createConnection(dbConfig);
 
 db.connect(err => {
   if (err) {
@@ -461,7 +467,7 @@ app.post('/api/admin/send-email', async (req, res) => {
 // ================= START SERVER ======================
 // =====================================================
 
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);

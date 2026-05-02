@@ -1,0 +1,13 @@
+{
+  "name": "lost-and-found",
+  "version": "1.0.0",
+  "description": "Lost and Found application",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "install-backend": "cd backend && npm install",
+    "build": "npm run install-backend"
+  },
+  "author": "",
+  "license": "ISC"
+}
