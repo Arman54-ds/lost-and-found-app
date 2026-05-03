@@ -3,7 +3,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const mysql = require('mysql2');
 const nodemailer = require('nodemailer');
 const upload = require('./middleware/upload');
 
@@ -58,23 +57,76 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Serve Frontend Static Files
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// ================= MYSQL CONNECTION =================
-const dbConfig = process.env.DATABASE_URL || {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'Arman@5403',
-  database: process.env.DB_NAME || 'lostfound_db'
-};
+const sqlite3 = require('sqlite3').verbose();
 
-const db = mysql.createConnection(dbConfig);
-
-db.connect(err => {
+// ================= SQLITE CONNECTION & SETUP =================
+// Using a local file database
+const sqliteDb = new sqlite3.Database(process.env.DATABASE_URL || './lostfound.sqlite', (err) => {
   if (err) {
     console.error('❌ DB Connection Error:', err);
     return;
   }
-  console.log('✅ MySQL Connected');
+  console.log('✅ SQLite Connected (Zero-Config DB)');
+
+  // Auto-create tables on startup (Crucial for Render deployments)
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      password TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'user',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS lost_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      title TEXT NOT NULL,
+      category TEXT,
+      description TEXT,
+      location TEXT,
+      image TEXT,
+      date_lost DATE,
+      status TEXT DEFAULT 'lost',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS found_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      title TEXT NOT NULL,
+      category TEXT,
+      description TEXT,
+      location TEXT,
+      image TEXT,
+      date_found DATE,
+      status TEXT DEFAULT 'unclaimed',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 });
+
+// A smart wrapper to mimic mysql2's db.query behavior
+// This prevents having to rewrite all the existing SQL queries in the app!
+const db = {
+  query: function(sql, params, callback) {
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
+    }
+    
+    // Naively route queries based on the starting word
+    if (sql.trim().toUpperCase().startsWith('SELECT')) {
+      sqliteDb.all(sql, params, (err, rows) => {
+        if (callback) callback(err, rows);
+      });
+    } else {
+      sqliteDb.run(sql, params, function(err) {
+        if (callback) callback(err, { insertId: this ? this.lastID : null, affectedRows: this ? this.changes : null });
+      });
+    }
+  }
+};
+
 
 // ================= HEALTH CHECK =================
 app.get('/api/health', (req, res) => {
@@ -256,7 +308,7 @@ app.get('/api/admin/matches', (req, res) => {
       u1.name AS lost_student, u1.email AS lost_email,
       u2.name AS found_student, u2.email AS found_email
     FROM lost_items l
-    JOIN found_items f ON l.title LIKE CONCAT('%', f.title, '%') OR f.title LIKE CONCAT('%', l.title, '%')
+    JOIN found_items f ON l.title LIKE '%' || f.title || '%' OR f.title LIKE '%' || l.title || '%'
     LEFT JOIN users u1 ON l.user_id = u1.id
     LEFT JOIN users u2 ON f.user_id = u2.id
     WHERE l.status = 'lost' AND f.status = 'unclaimed'
