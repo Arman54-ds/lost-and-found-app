@@ -60,10 +60,10 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 const sqlite3 = require('sqlite3').verbose();
 
 // Use a local file database. 
-// On Render, we use a fixed absolute path in the project root to ensure write permissions.
+// On Render, we use the /tmp directory which is guaranteed to be writable on all Linux cloud hosts.
 const dbPath = (process.env.DATABASE_URL && !process.env.DATABASE_URL.startsWith('postgres')) 
   ? process.env.DATABASE_URL 
-  : '/opt/render/project/src/lostfound.sqlite';
+  : '/tmp/lostfound.sqlite';
 
 const sqliteDb = new sqlite3.Database(dbPath, (err) => {
   if (err) {
@@ -108,6 +108,12 @@ const sqliteDb = new sqlite3.Database(dbPath, (err) => {
     );
   `);
 });
+
+// Prevent server crash on DB errors
+sqliteDb.on('error', (err) => {
+  console.error('❌ SQLite Runtime Error:', err);
+});
+
 
 // A smart wrapper to mimic mysql2's db.query behavior
 // This prevents having to rewrite all the existing SQL queries in the app!
@@ -158,7 +164,7 @@ app.post('/api/auth/register', (req, res) => {
   db.query(sql, [name, email, password, userRole], (err) => {
     if (err) {
       console.log(err);
-      if (err.code === 'ER_DUP_ENTRY') {
+      if (err.code === 'ER_DUP_ENTRY' || err.code === 'SQLITE_CONSTRAINT') {
         return res.status(400).json({ message: "Email already registered" });
       }
       return res.status(500).json({ message: "Registration failed" });
