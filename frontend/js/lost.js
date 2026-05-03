@@ -38,7 +38,8 @@ async function submitLost() {
 
     // FormData use karo taaki image bhi send ho sake
     const formData = new FormData();
-    formData.append("title", title);
+    formData.append("title", itemName); // Use original itemName for title
+    formData.append("category", category); // Send category separately
     formData.append("description", description);
     formData.append("location", location);
     formData.append("user_id", user.id);
@@ -47,16 +48,18 @@ async function submitLost() {
       formData.append("image", imageFile);
     }
 
+    console.log("Submitting Lost Item:", Object.fromEntries(formData));
+
     const res = await fetch(`${BASE_URL}/api/lost`, {
       method: "POST",
-      body: formData   // Content-Type header mat lagao, browser khud set karega
+      body: formData
     });
 
     const data = await res.json();
 
     if (res.ok) {
       alert("Lost Item Submitted Successfully ✅");
-      window.location.href = "dashboard.html";
+      window.location.href = "history.html"; // Redirect to history instead of dashboard
     } else {
       document.getElementById("lost_msg").innerText =
         data.message || "Submission failed";

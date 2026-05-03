@@ -27,7 +27,8 @@ async function submitFound() {
 
   // FormData use karo taaki image bhi send ho sake
   const formData = new FormData();
-  formData.append("title", title);
+  formData.append("title", itemName);
+  formData.append("category", category);
   formData.append("description", description);
   formData.append("location", location);
   formData.append("user_id", user.id);
@@ -36,17 +37,24 @@ async function submitFound() {
     formData.append("image", imageFile);
   }
 
-  const res = await fetch(`${BASE_URL}/api/found`, {
-    method: "POST",
-    body: formData   // Content-Type header mat lagao, browser khud set karega
-  });
+  console.log("Submitting Found Item:", Object.fromEntries(formData));
 
-  const data = await res.json();
+  try {
+    const res = await fetch(`${BASE_URL}/api/found`, {
+      method: "POST",
+      body: formData
+    });
 
-  if (res.ok) {
-    alert("Found Item Submitted Successfully");
-    window.location.href = "history.html";
-  } else {
-    document.getElementById("found_msg").innerText = data.message;
+    const data = await res.json();
+
+    if (res.ok) {
+      alert("Found Item Submitted Successfully ✅");
+      window.location.href = "history.html";
+    } else {
+      document.getElementById("found_msg").innerText = data.message || "Submission failed";
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    document.getElementById("found_msg").innerText = "Server not reachable";
   }
 }

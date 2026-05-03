@@ -14,13 +14,41 @@ const app = express();
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin_email@gmail.com'; 
 const ADMIN_PASS = process.env.ADMIN_PASS || 'admin_app_password';    
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: ADMIN_EMAIL,
-    pass: ADMIN_PASS
+let transporter;
+
+async function initTransporter() {
+  const isPlaceholder = ADMIN_EMAIL.includes('your_email') || ADMIN_EMAIL.includes('admin_email');
+  
+  if (isPlaceholder) {
+    console.log("🛠️ Generating test email account (Ethereal)...");
+    const testAccount = await nodemailer.createTestAccount();
+    transporter = nodemailer.createTransport({
+      host: "smtp.ethereal.email",
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    });
+    console.log("✅ Test email account generated:", testAccount.user);
+  } else {
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: {
+        user: ADMIN_EMAIL,
+        pass: ADMIN_PASS
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
   }
-});
+}
+initTransporter();
 
 // ================= MIDDLEWARE =================
 app.use(cors());
@@ -128,7 +156,7 @@ app.post('/api/auth/login', (req, res) => {
 
 // ✅ ADD LOST ITEM (with image upload)
 app.post('/api/lost', upload.single('image'), (req, res) => {
-  const { title, description, location, user_id, dateLost } = req.body;
+  const { title, description, location, user_id, dateLost, category } = req.body;
   const imagePath = req.file ? req.file.filename : null;
 
   if (!title || !location || !user_id) {
@@ -136,13 +164,13 @@ app.post('/api/lost', upload.single('image'), (req, res) => {
   }
 
   const sql = `
-    INSERT INTO lost_items (title, description, location, user_id, created_at, image)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO lost_items (title, description, category, location, user_id, date_lost, image, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'lost')
   `;
 
-  db.query(sql, [title, description || null, location, user_id, dateLost || new Date(), imagePath], (err) => {
+  db.query(sql, [title, description || null, category || null, location, user_id, dateLost || new Date(), imagePath], (err) => {
     if (err) {
-      console.log("DB ERROR:", err);
+      console.error("❌ DB INSERT Error (Lost):", err);
       return res.status(500).json({ message: "Database error" });
     }
     res.json({ message: "Lost item added successfully" });
@@ -174,7 +202,7 @@ app.get('/api/lost/user/:id', (req, res) => {
 
 // ✅ ADD FOUND ITEM (with image upload)
 app.post('/api/found', upload.single('image'), (req, res) => {
-  const { title, description, location, user_id, dateFound } = req.body;
+  const { title, description, location, user_id, dateFound, category } = req.body;
   const imagePath = req.file ? req.file.filename : null;
 
   if (!title || !location || !user_id) {
@@ -182,13 +210,13 @@ app.post('/api/found', upload.single('image'), (req, res) => {
   }
 
   const sql = `
-    INSERT INTO found_items (title, description, location, user_id, created_at, image)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO found_items (title, description, category, location, user_id, date_found, image, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'unclaimed')
   `;
 
-  db.query(sql, [title, description || null, location, user_id, dateFound || new Date(), imagePath], (err) => {
+  db.query(sql, [title, description || null, category || null, location, user_id, dateFound || new Date(), imagePath], (err) => {
     if (err) {
-      console.log(err);
+      console.error("❌ DB INSERT Error (Found):", err);
       return res.status(500).json({ message: "Database error" });
     }
     res.json({ message: "Found item added successfully" });
@@ -344,14 +372,31 @@ app.post('/api/admin/match/approve', (req, res) => {
 
         // Send emails and wait for completion
         try {
-          await transporter.sendMail(lostMailOptions);
-          await transporter.sendMail(foundMailOptions);
-          res.json({ message: "Match approved and notifications sent successfully! ✅" });
+          if (!transporter) await initTransporter();
+
+          const info1 = await transporter.sendMail(lostMailOptions);
+          const info2 = await transporter.sendMail(foundMailOptions);
+          
+          console.log("✅ Match emails sent!");
+          
+          // If using Ethereal, provide a preview link
+          let previewLink = "";
+          if (nodemailer.getTestMessageUrl(info1)) {
+            previewLink = nodemailer.getTestMessageUrl(info1);
+            console.log("📧 View Lost Item Email:", previewLink);
+            console.log("📧 View Found Item Email:", nodemailer.getTestMessageUrl(info2));
+          }
+
+          res.json({ 
+            message: "Match approved and notifications sent successfully! ✅",
+            preview_url: previewLink || null
+          });
+
         } catch (mailError) {
-          console.error("Email Sending Error:", mailError);
-          res.status(500).json({
-            message: "Match approved in database, but failed to send emails. Check your server credentials.",
-            error: mailError.message
+          console.error("❌ Email Sending Error:", mailError.message);
+          res.json({ 
+            message: "Match approved, but notification encountered an issue.",
+            error: mailError.message 
           });
         }
       });
