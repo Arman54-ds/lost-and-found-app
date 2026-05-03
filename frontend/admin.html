@@ -36,7 +36,12 @@
     <h4 class="text-white m-0">
       <i class="fa-solid fa-user-shield"></i> Admin Panel
     </h4>
-    <button class="btn btn-light btn-sm" onclick="logout()">Logout</button>
+    <div class="d-flex align-items-center">
+      <button class="btn btn-outline-light btn-sm me-2" onclick="refreshAll()">
+        <i class="fa-solid fa-rotate"></i> Refresh All
+      </button>
+      <button class="btn btn-light btn-sm" onclick="logout()">Logout</button>
+    </div>
   </nav>
 
   <div class="container mt-4">
@@ -125,6 +130,52 @@
       </table>
     </div>
 
+    <!-- ================= USER MANAGEMENT ================= -->
+    <h3 class="text-center mt-5 mb-3 fw-bold text-dark">User Management</h3>
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover shadow align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="userBody">
+          <tr><td colspan="5" class="text-center">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ================= SEND EMAIL ================= -->
+    <h3 class="text-center mt-5 mb-3 fw-bold text-info">Send Notification Email</h3>
+    <div class="card shadow mb-5">
+      <div class="card-body">
+        <form id="emailForm">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">To (Email Address)</label>
+              <input type="email" id="emailTo" class="form-control" placeholder="user@example.com" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Subject</label>
+              <input type="text" id="emailSubject" class="form-control" placeholder="Lost & Found Update" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Message</label>
+            <textarea id="emailMessage" class="form-control" rows="3" placeholder="Enter your message here..." required></textarea>
+          </div>
+          <button type="submit" class="btn btn-info text-white w-100">
+            <i class="fa-solid fa-paper-plane"></i> Send Email
+          </button>
+        </form>
+        <p id="emailMsg" class="mt-2 text-center"></p>
+      </div>
+    </div>
+
   </div>
 
   <!-- ===== IMAGE PREVIEW MODAL ===== -->
@@ -154,7 +205,7 @@
   <script src="js/common.js"></script>
 
   <script>
-    const BASE_URL = "http://localhost:5000";
+    const BASE_URL = window.BASE_URL || "";
 
     // Admin auth check
     const adminUser = JSON.parse(localStorage.getItem("user"));
@@ -343,11 +394,78 @@
       btn.closest('tr').remove();
     }
 
+    // ─── LOAD USERS ───────────────────────────────────────────
+    async function loadUsers() {
+      const body = document.getElementById("userBody");
+      try {
+        const data = await fetch(`${BASE_URL}/api/admin/users`).then(r => r.json());
+        body.innerHTML = "";
+        data.forEach(u => {
+          body.innerHTML += `
+            <tr>
+              <td>${u.id}</td>
+              <td>${u.name}</td>
+              <td>${u.email}</td>
+              <td><span class="badge ${u.role === 'admin' ? 'bg-danger' : 'bg-secondary'}">${u.role}</span></td>
+              <td>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${u.id})">
+                  <i class="fa-solid fa-trash"></i> Delete
+                </button>
+              </td>
+            </tr>`;
+        });
+      } catch (e) { console.error(e); }
+    }
+
+    // ─── DELETE USER ──────────────────────────────────────────
+    async function deleteUser(id) {
+      if (!confirm("Are you sure you want to delete this user?")) return;
+      try {
+        const res = await fetch(`${BASE_URL}/api/admin/user/${id}`, { method: "DELETE" });
+        const data = await res.json();
+        alert(data.message);
+        if (res.ok) loadUsers();
+      } catch (e) { console.error(e); }
+    }
+
+    // ─── SEND EMAIL ───────────────────────────────────────────
+    document.getElementById("emailForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const to = document.getElementById("emailTo").value;
+      const subject = document.getElementById("emailSubject").value;
+      const message = document.getElementById("emailMessage").value;
+      const msg = document.getElementById("emailMsg");
+
+      msg.className = "mt-2 text-center text-primary";
+      msg.innerText = "Sending...";
+
+      try {
+        const res = await fetch(`${BASE_URL}/api/admin/send-email`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ to, subject, message })
+        });
+        const data = await res.json();
+        msg.className = `mt-2 text-center ${res.ok ? 'text-success' : 'text-danger'}`;
+        msg.innerText = data.message;
+        if (res.ok) e.target.reset();
+      } catch (e) {
+        msg.className = "mt-2 text-center text-danger";
+        msg.innerText = "Error sending email";
+      }
+    });
+
+    // ─── REFRESH ALL ──────────────────────────────────────────
+    function refreshAll() {
+      loadAdminLost();
+      loadAdminFound();
+      loadMatches();
+      loadUnmatched();
+      loadUsers();
+    }
+
     // ─── INIT ─────────────────────────────────────────────────
-    loadAdminLost();
-    loadAdminFound();
-    loadMatches();
-    loadUnmatched();
+    refreshAll();
   </script>
 
 </body>

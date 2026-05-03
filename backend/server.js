@@ -348,7 +348,7 @@ app.get('/api/admin/unmatched', (req, res) => {
   const sqlMatched = `
     SELECT l.id AS lost_id, f.id AS found_id
     FROM lost_items l
-    JOIN found_items f ON l.title LIKE CONCAT('%', f.title, '%') OR f.title LIKE CONCAT('%', l.title, '%')
+    JOIN found_items f ON l.title LIKE '%' || f.title || '%' OR f.title LIKE '%' || l.title || '%'
     WHERE l.status = 'lost' AND f.status = 'unclaimed'
   `;
 
