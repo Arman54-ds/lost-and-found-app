@@ -1,4 +1,4 @@
-const BASE_URL = window.BASE_URL || "http://localhost:5000";
+const BASE_URL = window.BASE_URL || "";
 
 // 🚨 Admin protection
 const user = JSON.parse(localStorage.getItem("user"));
