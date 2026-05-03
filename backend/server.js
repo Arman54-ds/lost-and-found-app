@@ -59,9 +59,13 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 
 const sqlite3 = require('sqlite3').verbose();
 
-// ================= SQLITE CONNECTION & SETUP =================
-// Using a local file database
-const sqliteDb = new sqlite3.Database(process.env.DATABASE_URL || './lostfound.sqlite', (err) => {
+// Use a local file database. 
+// On Render, DATABASE_URL is often a Postgres string, so we ignore it if it starts with 'postgres'
+const dbPath = (process.env.DATABASE_URL && !process.env.DATABASE_URL.startsWith('postgres')) 
+  ? process.env.DATABASE_URL 
+  : path.join(__dirname, 'lostfound.sqlite');
+
+const sqliteDb = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('❌ DB Connection Error:', err);
     return;
